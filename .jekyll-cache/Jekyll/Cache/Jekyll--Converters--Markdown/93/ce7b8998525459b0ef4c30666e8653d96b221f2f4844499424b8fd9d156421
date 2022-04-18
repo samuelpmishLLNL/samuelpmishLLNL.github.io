@@ -1,0 +1,205 @@
+I"�.<p>As part of an effort to develop a bot that plays Rocket League,
+it is important to be able to predict the motion of the ball. This
+is a summary of my model of the ball’s response to hitting a rigid
+surface.</p>
+
+<p>If you are not interested in any derivations, try skipping ahead to 
+the <a href="#example-implementation">example implementation</a>, 
+and <a href="#example-predictions">see it in action</a>. 
+The data files used to arrive at these results can be
+found <a href="/notes/RocketLeague/ball_bounce_data.zip">here</a>(~350 
+10 second recordings from Rocket League of balls with random 
+initial conditions).</p>
+
+<h2 id="problem-statement">Problem Statement</h2>
+
+<p>Consider a scenario where a ball with radius \(R\) is about to make 
+contact with a rigid surface with unit normal vector \(\mathbf{n}\). 
+Let \(\mathbf{v}\) be the velocity of the center of mass of the ball, 
+and \(\boldsymbol{\omega}\) be the angular velocity of the ball.</p>
+
+<p><img src="/images/RocketLeague/bounce_problem_statement.png" alt="" /></p>
+
+<p>When the ball comes into contact with the rigid surface,
+it feels an impulse \(\mathbf{J}\) that redirects the ball
+away from the surface:</p>
+
+<p><img src="/images/RocketLeague/bounce_impulse.png" alt="" /></p>
+
+<p>To make our calculations work for any surface orientation,
+we need to express the impulse in terms of its components
+parallel to the surface, \(\mathbf{J}_{\shortparallel}\),
+and normal to it, \(\mathbf{J}_{\perp}\)</p>
+
+<p><img src="/images/RocketLeague/bounce_impulse_components.png" alt="" /></p>
+
+<p>If we knew these components of \(\mathbf{J}\), then we could update
+the ball’s velocity and angular velocity:</p>
+
+\[\begin{cases}
+  \mathbf{v} \coloneqq \mathbf{v} + \displaystyle \frac{\mathbf{J}}{m} \\ \\
+  \boldsymbol{\omega} \coloneqq \boldsymbol{\omega} + \displaystyle \frac{R}{I} (\mathbf{J}_{\shortparallel} \times \mathbf{n})
+\end{cases}\]
+
+<p>where \(m\) and \(I\) are the ball’s mass and moment of inertia (which, for a sphere,
+can be represented by a scalar value), respectively. Note:
+since the line of action of \(\mathbf{J}_{\perp}\) goes through the center of mass of
+the ball, it produces no torque. This is why the update procedure for 
+\(\boldsymbol{\omega}\) only involves \(\mathbf{J}_{\shortparallel}\).</p>
+
+<p>All we need now is a model for how to determine \(\mathbf{J}_{\shortparallel}\)
+and \(\mathbf{J}_{\perp}\).</p>
+
+<h2 id="normal-impulse">Normal Impulse</h2>
+
+<p>This is the simpler of the two components to figure out. In order to ensure
+that the ball’s corrected velocity will be moving away from the wall, we use
+the following model</p>
+
+\[\mathbf{J}_{\perp} = - \; m \; (1 + C_R) \; \mathbf{v}_{\perp}
+  \qquad \text{where  }
+  \mathbf{v}_{\perp} = (\mathbf{v} \cdot \mathbf{n}) \; \mathbf{n}\]
+
+<p>Here, \(C_R\) is the coefficient of restitution, a number between 0 and 1
+that characterizes how much the ball rebounds off of the surface. 
+Empirically, a value of \(C_R \approx 0.6\) seems to be a good approximation
+for Rocket League.</p>
+
+<h2 id="tangential-impulse">Tangential Impulse</h2>
+
+<p>The tangential impulse is related to frictional effects during the
+moment of contact. There are a number of different frictional models 
+that are commonly used, so it is more challenging to reverse engineer
+the one being used in Rocket League. Consider the following animation
+(made from actual data recorded in Rocket League):</p>
+
+<video autoplay="" loop="" muted="">
+<source type="video/webm" src="/videos/bounce.webm" />
+Your browser does not support the video element.
+</video>
+
+<p>The important observation here is that the ball is subjected to a 
+tangential impulse when colliding with the ground, even though
+its horizontal velocity was initially zero. This indicates that
+the friction model must be one that opposes the slip velocity, 
+\(\mathbf{s}\), at the point of contact, rather than just the velocity
+of the ball’s center of mass.</p>
+
+<p>Since the surfaces are not moving, 
+the slip velocity is just the velocity of the part of the ball 
+that makes contact with the surface. Like the animation shows,
+this slip velocity depends on both the ball’s angular velocity
+and the velocity of its center of mass:</p>
+
+\[\mathbf{s} = \mathbf{v}_{\shortparallel} + 
+    R \; (\mathbf{n} \times \boldsymbol{\omega}),
+  \qquad \text{where  }
+  \mathbf{v}_{\shortparallel} = \mathbf{v} - (\mathbf{v} \cdot \mathbf{n}) \; \mathbf{n}\]
+
+<p>The simplest friction model of this type is one that opposes the slip velocity, linearly:</p>
+
+\[\mathbf{J}_{\shortparallel} = - \; m \; 
+    \min(1, \;\; Y \; \frac{||\mathbf{v}_{\perp}||}{||s||}) 
+    \; \mu \; \mathbf{s}
+  \qquad \text{where  }
+  ||\mathbf{a}|| = \sqrt{\mathbf{a} \cdot \mathbf{a}}\]
+
+<h2 id="final-notes">Final notes</h2>
+
+<p>Although these expressions include the mass \(m\) and moment of
+inertia \(I\), we can’t directly measure these values from observations
+of a ball bouncing. Luckily, it turns out we don’t need to know their
+values to make accurate predictions about the dynamics of the ball.</p>
+
+<p>This provides the description of how to update the ball’s velocity and
+angular velocity, but to make good predictions we also need an appropriate
+time integrator, and a way to detect which surfaces the ball hits.</p>
+
+<h2 id="example-implementation">Example Implementation</h2>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="kt">double</span> <span class="n">R</span> <span class="o">=</span> <span class="mf">91.25</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">double</span> <span class="n">Y</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">double</span> <span class="n">mu</span> <span class="o">=</span> <span class="mf">0.285</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">double</span> <span class="n">C_R</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">double</span> <span class="n">A</span> <span class="o">=</span> <span class="mf">0.0003</span><span class="p">;</span>
+
+<span class="k">struct</span> <span class="nc">state</span> <span class="p">{</span>
+  <span class="n">vec3</span> <span class="n">x</span><span class="p">;</span> <span class="c1">// position</span>
+  <span class="n">vec3</span> <span class="n">v</span><span class="p">;</span> <span class="c1">// velocity</span>
+  <span class="n">vec3</span> <span class="n">w</span><span class="p">;</span> <span class="c1">// angular velocity</span>
+<span class="p">};</span>
+
+<span class="n">state</span> <span class="nf">bounce</span><span class="p">(</span><span class="n">state</span> <span class="n">current</span><span class="p">,</span> <span class="n">vec3</span> <span class="n">n</span><span class="p">)</span> <span class="p">{</span>
+   
+  <span class="n">vec3</span> <span class="n">v_perp</span> <span class="o">=</span> <span class="n">dot</span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="n">v</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">n</span><span class="p">;</span>
+  <span class="n">vec3</span> <span class="n">v_para</span> <span class="o">=</span> <span class="n">current</span><span class="p">.</span><span class="n">v</span> <span class="o">-</span> <span class="n">v_perp</span><span class="p">;</span>
+  <span class="n">vec3</span> <span class="n">v_spin</span> <span class="o">=</span> <span class="n">R</span> <span class="o">*</span> <span class="n">cross</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">current</span><span class="p">.</span><span class="n">w</span><span class="p">);</span>
+  <span class="n">vec3</span> <span class="n">s</span> <span class="o">=</span> <span class="n">v_para</span> <span class="o">+</span> <span class="n">v_spin</span><span class="p">;</span>
+   
+  <span class="kt">double</span> <span class="n">ratio</span> <span class="o">=</span> <span class="n">length</span><span class="p">(</span><span class="n">v_perp</span><span class="p">)</span> <span class="o">/</span> <span class="n">length</span><span class="p">(</span><span class="n">s</span><span class="p">);</span>
+   
+  <span class="n">vec3</span> <span class="n">delta_v_perp</span> <span class="o">=</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">C_R</span><span class="p">)</span> <span class="o">*</span> <span class="n">v_perp</span><span class="p">;</span>
+  <span class="n">vec3</span> <span class="n">delta_v_para</span> <span class="o">=</span> <span class="o">-</span> <span class="n">fmin</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">Y</span> <span class="o">*</span> <span class="n">ratio</span><span class="p">)</span> <span class="o">*</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">s</span><span class="p">;</span>
+   
+  <span class="k">return</span> <span class="n">state</span><span class="p">{</span>
+    <span class="n">current</span><span class="p">.</span><span class="n">x</span><span class="p">,</span>
+    <span class="n">current</span><span class="p">.</span><span class="n">v</span> <span class="o">+</span> <span class="n">delta_v_perp</span> <span class="o">+</span> <span class="n">delta_v_para</span><span class="p">,</span>
+    <span class="n">current</span><span class="p">.</span><span class="n">w</span> <span class="o">+</span> <span class="n">A</span> <span class="o">*</span> <span class="n">R</span> <span class="o">*</span> <span class="n">cross</span><span class="p">(</span><span class="n">delta_v_para</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+  <span class="p">};</span>  
+   
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="example-predictions">Example Predictions</h2>
+
+<p>These plots compare actual ball trajectories recorded in Rocket
+League (solid lines) to the predicted trajectories computed with
+this model of ball bounce physics, given only the initial conditions
+(dashed lines). These plots are generated from data file 
+“episode_000218.csv” in the dataset provided at the top of this page.</p>
+
+<p>Ball locations, as a function of time step:
+<img src="/images/RocketLeague/bounce_positions_218.png" alt="" /></p>
+
+<p>Ball velocities, as a function of time step:
+<img src="/images/RocketLeague/bounce_velocities_218.png" alt="" /></p>
+
+<p>Ball angular velocities, as a function of time step:
+<img src="/images/RocketLeague/bounce_angular_velocities_218.png" alt="" /></p>
+
+<p>Note: in real time, 600 steps is about 10 seconds. The following
+are numerical values for the state after 10 seconds of prediction (quantities
+with a tilde), compared to their exact values (quantities without tilde):</p>
+
+\[\mathbf{x} = 
+\begin{bmatrix}
+-3242.75 \\ -2250.18 \\ 93.15
+\end{bmatrix}, \qquad
+\mathbf{\tilde{x}} = 
+\begin{bmatrix}
+-3232.98 \\ -2248.68 \\ 91.2911
+\end{bmatrix}, \qquad\]
+
+\[\mathbf{v} = 
+\begin{bmatrix}
+-397.097 \\ -167.692 \\ 0.0
+\end{bmatrix}, \qquad
+\mathbf{\tilde{v}} = 
+\begin{bmatrix}
+-397.489 \\ -167.986 \\ 3.99011
+\end{bmatrix}, \qquad\]
+
+\[\boldsymbol{\omega} = 
+\begin{bmatrix}
+1.83772 \\ -4.35171 \\ -2.7843
+\end{bmatrix}, \qquad
+\boldsymbol{\tilde{\omega}} = 
+\begin{bmatrix}
+1.84095 \\ -4.35605 \\ -2.78952
+\end{bmatrix}, \qquad\]
+
+<p>So, it is possible to predict the ball’s motion many seconds in advance, 
+with accurate results. Other improvements are still possible, as it
+looks like Rocket League may explicitly zero out vertical velocity when 
+rolling, etc.</p>
+:ET

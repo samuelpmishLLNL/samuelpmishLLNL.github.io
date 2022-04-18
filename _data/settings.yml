@@ -1,0 +1,13 @@
+#-------------------------------
+# General Site Settings
+title: smish.dev
+
+#-------------------------------
+# Author Settings
+author:
+  name: Sam Mish
+
+#-------------------------------
+# Google Analytics
+google-analytics: # Add your identifier. For example UA-99631805-1.
+

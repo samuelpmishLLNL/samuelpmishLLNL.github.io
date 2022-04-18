@@ -1,0 +1,168 @@
+I"�:<p>In a <a href="/notes/RocketLeague/ball_bouncing/">previous post</a>, 
+I provided a physical model for how the ball behaves in Rocket League.
+This model accurately describes what happens when the ball hits an
+obstacle with a given surface normal, but without a way to find
+these collisions (and their surface normals) it was not very useful.</p>
+
+<p>This post describes how we can use meshes taken from Rocket League
+to more accurately report collision information to our model.</p>
+
+<h2 id="mesh-files">Mesh Files</h2>
+
+<p><img src="/images/RocketLeague/pitch_mesh.png" alt="" /></p>
+
+<p>The RLBot community has collision meshes for the map corners, goals, and 
+cylindrical ramps on the sides of the field. I’ve put these together
+into the mesh above, and it can be downloaded 
+<a href="/notes/RocketLeague/pitch.obj">here</a>.</p>
+
+<h2 id="naive-collision-detection">Naive Collision Detection</h2>
+
+<p>With the mesh above, we can read the 8028 triangles individually,
+and check sphere-triangle intersection tests on each of them in
+order to find all possible faces that might be in contact with the
+ball.</p>
+
+<p>A basic implementation of the necessary triangle-sphere intersection
+tests needed to accomplish this is given below:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">sphere</span><span class="p">{</span>
+  <span class="n">vec3</span> <span class="n">center</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">radius</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">// CCW winding</span>
+<span class="k">struct</span> <span class="nc">tri</span><span class="p">{</span>
+  <span class="n">vec3</span> <span class="n">p</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span>
+<span class="p">};</span>
+
+<span class="kt">float</span> <span class="nf">distance_between</span><span class="p">(</span><span class="k">const</span> <span class="n">vec3</span> <span class="o">&amp;</span> <span class="n">start</span><span class="p">,</span> <span class="k">const</span> <span class="n">vec3</span> <span class="o">&amp;</span> <span class="n">dir</span><span class="p">,</span> <span class="k">const</span> <span class="n">vec3</span> <span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="kt">float</span> <span class="n">u</span> <span class="o">=</span> <span class="n">clamp</span><span class="p">(</span><span class="n">dot</span><span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="n">dir</span><span class="p">)</span> <span class="o">/</span> <span class="n">dot</span><span class="p">(</span><span class="n">dir</span><span class="p">,</span> <span class="n">dir</span><span class="p">),</span> <span class="mf">0.0</span><span class="n">f</span><span class="p">,</span> <span class="mf">1.0</span><span class="n">f</span><span class="p">);</span>
+  <span class="k">return</span> <span class="n">norm</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">u</span> <span class="o">*</span> <span class="n">dir</span> <span class="o">-</span> <span class="n">p</span><span class="p">);</span>
+
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="nf">intersect</span><span class="p">(</span><span class="k">const</span> <span class="n">tri</span> <span class="o">&amp;</span> <span class="n">a</span><span class="p">,</span> <span class="k">const</span> <span class="n">sphere</span> <span class="o">&amp;</span> <span class="n">b</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="kt">float</span> <span class="n">dist</span><span class="p">;</span>
+    
+  <span class="n">vec3</span> <span class="n">e1</span> <span class="o">=</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+  <span class="n">vec3</span> <span class="n">e2</span> <span class="o">=</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="n">vec3</span> <span class="n">e3</span> <span class="o">=</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+  <span class="n">vec3</span> <span class="n">n</span>  <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">cross</span><span class="p">(</span><span class="n">e3</span><span class="p">,</span> <span class="n">e1</span><span class="p">));</span>
+
+  <span class="n">mat3</span> <span class="n">A</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">{</span><span class="n">e1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="n">e3</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n</span><span class="p">[</span><span class="mi">0</span><span class="p">]},</span>
+    <span class="p">{</span><span class="n">e1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="n">e3</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n</span><span class="p">[</span><span class="mi">1</span><span class="p">]},</span>
+    <span class="p">{</span><span class="n">e1</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="n">e3</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">n</span><span class="p">[</span><span class="mi">2</span><span class="p">]}</span>
+  <span class="p">};</span>
+
+  <span class="n">vec3</span> <span class="n">x</span> <span class="o">=</span> <span class="n">dot</span><span class="p">(</span><span class="n">inv</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="n">b</span><span class="p">.</span><span class="n">center</span> <span class="o">-</span> <span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+  <span class="kt">float</span> <span class="n">u</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+  <span class="kt">float</span> <span class="n">v</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="kt">float</span> <span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span><span class="n">f</span> <span class="o">-</span> <span class="n">u</span> <span class="o">-</span> <span class="n">v</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">z</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+  <span class="c1">// if the projection of sphere's center </span>
+  <span class="c1">// along the triangle normal puts it inside</span>
+  <span class="c1">// the triangle, then we can just check</span>
+  <span class="c1">// the out-of-plane distance</span>
+  <span class="k">if</span> <span class="p">(</span><span class="mf">0.0</span><span class="n">f</span> <span class="o">&lt;=</span> <span class="n">u</span> <span class="o">&amp;&amp;</span> <span class="n">u</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="n">f</span> <span class="o">&amp;&amp;</span>
+      <span class="mf">0.0</span><span class="n">f</span> <span class="o">&lt;=</span> <span class="n">v</span> <span class="o">&amp;&amp;</span> <span class="n">v</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="n">f</span> <span class="o">&amp;&amp;</span>
+      <span class="mf">0.0</span><span class="n">f</span> <span class="o">&lt;=</span> <span class="n">w</span> <span class="o">&amp;&amp;</span> <span class="n">w</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="n">f</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">fabs</span><span class="p">(</span><span class="n">z</span><span class="p">);</span>
+
+  <span class="c1">// otherwise, check the distances to</span>
+  <span class="c1">// the closest edge of the triangle</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">b</span><span class="p">.</span><span class="n">radius</span> <span class="o">+</span> <span class="mf">1.0</span><span class="n">f</span><span class="p">;</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">fmin</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">distance_between</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">e1</span><span class="p">,</span> <span class="n">b</span><span class="p">.</span><span class="n">center</span><span class="p">));</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">fmin</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">distance_between</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">e2</span><span class="p">,</span> <span class="n">b</span><span class="p">.</span><span class="n">center</span><span class="p">));</span>
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">fmin</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">distance_between</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">e3</span><span class="p">,</span> <span class="n">b</span><span class="p">.</span><span class="n">center</span><span class="p">));</span>
+    
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="n">dist</span> <span class="o">&lt;=</span> <span class="n">b</span><span class="p">.</span><span class="n">radius</span><span class="p">;</span>
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Let’s try this naive approach on a benchmark problem that
+randomly generates spheres and checks each triangle for
+intersection:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ bin/Release/queries_test.exe -naive
+successfully read 8028 triangles
+completed 1000 queries in 0.995355 seconds
+</code></pre></div></div>
+
+<p>Although this can improve the fidelity of our ball predictions,
+spending an entire millisecond to see if the ball hits the
+mesh is way too expensive. We might want to predict ahead 
+a few hundred time steps to plan a bot’s actions, but 
+that really isn’t possible with this naive approach.</p>
+
+<h2 id="bounding-volume-hierarchies">Bounding Volume Hierarchies</h2>
+
+<p>One way to improve the performance of these geometric queries
+is to use a spatial acceleration structure. The basic idea behind
+this is to analyze the geometry of our mesh, and systematically
+group sections that are close to each other. Then, when we perform
+a query (i.e. find which parts of the mesh intersect an given object),
+we can cull entire sections of the mesh at a time, quickly zeroing in
+on only nearby geometry.</p>
+
+<p>I highly recommend reading through the 3 part series on BVH generation
+on NVIDIA’s blog:</p>
+
+<p>-<a href="https://devblogs.nvidia.com/thinking-parallel-part-i-collision-detection-gpu/">part 1</a></p>
+
+<p>-<a href="https://devblogs.nvidia.com/thinking-parallel-part-ii-tree-traversal-gpu/">part 2</a></p>
+
+<p>-<a href="https://devblogs.nvidia.com/thinking-parallel-part-iii-tree-construction-gpu/">part 3</a></p>
+
+<p>By first constructing a BVH for our mesh, we can considerably reduce the
+time required to perform these queries:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ bin/Release/queries_test.exe -bvh
+successfully read 8028 triangles
+constructing BVH...
+completed 1000 queries in 0.000456973 seconds
+</code></pre></div></div>
+
+<p>So, this has given us a 2000x speedup over the naive implementation (this
+is more a statement of how inefficient the naive version is)! This means
+we can get the accuracy benefits of using the actual collision mesh geometry,
+without sacrificing performance.</p>
+
+<p>I hope to release my sources for the BVH construction and other
+Rocket League utilities on github soon.</p>
+
+<h2 id="prediction-benefits">Prediction Benefits</h2>
+
+<p>These plots compare actual ball trajectories recorded in Rocket
+League (solid lines) to the predicted trajectories computed with
+this model of ball bounce physics, given only the initial conditions
+(dashed lines). These plots are generated from data file 
+“episode_000121.csv” in the dataset provided 
+<a href="/notes/RocketLeague/ball_bounce_data.zip">here</a>.</p>
+
+<p>Ball locations, as a function of time step:
+<img src="/images/RocketLeague/bounce_roll_positions.png" alt="" /></p>
+
+<p>Ball velocities, as a function of time step:
+<img src="/images/RocketLeague/bounce_roll_velocities.png" alt="" /></p>
+
+<p>Ball angular velocities, as a function of time step:
+<img src="/images/RocketLeague/bounce_roll_angular_velocities.png" alt="" /></p>
+
+<p>Here, we see that by using actual geometry, we are able to
+resolve not only the simple bounces with the ground (timesteps 0 to 400),
+but we can also predict how the ball will roll up one of the cylindrical
+sides of the wall (timesteps 400-600). The predicted motion closely 
+follows the observed results, even for this long 10-second simulation.</p>
+:ET

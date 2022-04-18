@@ -1,0 +1,375 @@
+I"_l<p>One way to design a bot for Rocket League is to quantitatively
+understand how the bot’s actions affect the car, and use that
+understanding to plan actions that produce a desired outcome.
+This is a summary of my model of the car’s response to controller
+inputs, while in the air.</p>
+
+<p>If you are not interested in any derivations, try skipping ahead to 
+the <a href="#example-implementation">example implementation</a>.</p>
+
+<h2 id="problem-statement">Problem Statement</h2>
+
+<p>Consider a scenario of a car in the air with
+center of mass velocity \(\mathbf{v}\), angular velocity 
+\(\boldsymbol{\omega}\), and orientation \(\boldsymbol{\Theta}\).
+At that instant, a player can influence the car by providing
+inputs that exert torques on the car (to control its
+rate of rotation), as well as boost. The car can also
+air dodge, but we will save that mechanic for another
+post.</p>
+
+<p>While boosting, the car experiences an acceleration
+in the direction of the front of the car. However,
+as the car is tumbling through the air, this direction
+is constantly changing, so how can we keep track of the
+car’s orientation?</p>
+
+<h3 id="aside-how-does-one-represent-orientation">(aside) How does one represent orientation?</h3>
+
+<p>There is no ambiguity about how to represent velocity and angular velocity. \(\mathbf{v}\) and
+\(\boldsymbol\omega\) are simply vectors in \(\mathbb{R}^3\). Orientation, on the other hand, has a number of different
+(but equivalent) common representations. Briefly,
+three of the most common ways to represent an orientation
+are:</p>
+
+<ol>
+  <li>Euler Angles: Orientation is parameterized by three angles, and an assumed order of application.
+  The final orientation is achieved by applying the 3 rotations, in order. This is the representation
+  that Rocket League uses internally.</li>
+  <li>Quaternions: In the same way that unit complex numbers are a natural representation of rotations in the plane, unit quaternions naturally can represent rotations in three dimensional space.</li>
+  <li>Proper-Orthogonal Matrices: This representation uses a 3-by-3 matrix to store the local coordinate system associated with an orientation.</li>
+</ol>
+
+<p>I choose to represent orientations directly in their matrix form.
+Let \(\boldsymbol{f}, \boldsymbol{l}, \boldsymbol{u}\) be the front,
+left, and up directions for the car. They appear in the following way:</p>
+
+\[\boldsymbol\Theta = 
+\begin{bmatrix}
+\color{red} f_x &amp; \color{green} l_x &amp; \color{blue} u_x \\
+\color{red} f_y &amp; \color{green} l_y &amp; \color{blue} u_y \\
+\color{red} f_z &amp; \color{green} l_z &amp; \color{blue} u_z
+\end{bmatrix},
+\qquad
+
+\boldsymbol\Theta \; \boldsymbol\Theta^\top = \mathbf{1}\]
+
+<p><img src="car_axes.png" alt="" /></p>
+
+<h3 id="time-rate-of-change-of-orientation">Time Rate of Change of Orientation</h3>
+
+<p>With that in mind, what happens to \(\boldsymbol\Theta\)
+when it is subjected to a constant angular velocity
+\(\boldsymbol\omega\)? It will rotate about \(\boldsymbol\omega\)’s axis
+(shown in purple), at \(||\boldsymbol\omega||\) radians per second:</p>
+
+<video autoplay="" loop="" muted="">
+<source type="video/webm" src="spinning.webm" />
+Your browser does not support the video element.
+</video>
+
+<p>We can see that the time rate of the individual directions
+\(\boldsymbol{f}, \boldsymbol{l}, \boldsymbol{u}\) is given
+by
+\(\displaystyle \frac{d\boldsymbol{f}}{dt} = \boldsymbol{\omega} \times \boldsymbol{f},
+\qquad
+\displaystyle \frac{d\boldsymbol{l}}{dt} = \boldsymbol{\omega} \times \boldsymbol{l},
+\qquad
+\displaystyle \frac{d\boldsymbol{u}}{dt} = \boldsymbol{\omega} \times \boldsymbol{u}\)</p>
+
+<p>or, in matrix form</p>
+
+\[\displaystyle \frac{d\boldsymbol{\Theta}}{dt} = \boldsymbol{\Omega} \; \boldsymbol{\Theta},
+\; \text{where} \;
+\boldsymbol{\Omega} \; \boldsymbol{a} \; = \;
+\begin{bmatrix}
+0 &amp; -\boldsymbol{\omega}_z &amp; \boldsymbol{\omega}_y \\
+\boldsymbol{\omega}_z &amp; 0 &amp; -\boldsymbol{\omega}_x  \\
+-\boldsymbol{\omega}_y &amp; \boldsymbol{\omega}_x &amp; 0
+\end{bmatrix}
+\begin{bmatrix}
+a_x \\ a_y \\ a_z
+\end{bmatrix}
+\; = \; \boldsymbol{\omega} \times \boldsymbol{a}, \;\; \forall \boldsymbol{a} \in \mathbb{R}^3\]
+
+<p>This matrix-valued ordinary differential equation in \(\boldsymbol{\Theta}\) might
+look intimidating at first, but upon closer inspection, we can see that it is just
+a matrix version of the simplest differential equation in mathematics:</p>
+
+\[\big(\displaystyle \frac{dg}{dt} = a \; g, \;\; g(t_0) = g_0 \big)
+\; \implies \; 
+g(t_0 + \Delta t) = \exp(a \Delta t) \; g_0\]
+
+<p>It follows that the solution to our matrix-valued ODE has a similar form</p>
+
+\[\big(\displaystyle \frac{d\boldsymbol{\Theta}}{dt} = \boldsymbol{\Omega} \; \boldsymbol{\Theta},  \;\;
+\boldsymbol{\Theta}(t_0) = \boldsymbol{\Theta}_0 \big)
+\; \implies \;
+\boldsymbol{\Theta}(t_0 + \Delta t) = \exp(\boldsymbol{\Omega} \Delta t) \; \boldsymbol{\Theta}_0\]
+
+<p>Although most people are comfortable with the idea of taking the exponential of a number,
+many have not seen the matrix exponential before, so I will quickly review what it means.
+Fundamentally, the exponential function is defined by an infinite series:</p>
+
+\[\exp(x) = 1 + x + \frac{x^2}{2!} + \frac{x^3}{3!} + ...\]
+
+<p>So, if we pass in a matrix argument, we get</p>
+
+\[\exp(\boldsymbol{\Omega} \Delta t) = 
+\boldsymbol{1} +\boldsymbol{\Omega} \Delta t +  
+\displaystyle \frac{\boldsymbol{\Omega}^2 \Delta t^2}{2!} + 
+\displaystyle \frac{\boldsymbol{\Omega}^3 \Delta t^3}{3!} + ...\]
+
+<p>In general, it can be tricky to evaluate the matrix exponential,
+but luckily \(\boldsymbol{\Omega}\) is an antisymmetric
+matrix (i.e. \(\boldsymbol{\Omega} = - \boldsymbol{\Omega}^\top\)).
+For antisymmetric matrices, we have a closed form expression
+for the matrix exponential:</p>
+
+\[\exp(\boldsymbol{\Omega} \Delta t) = 
+\boldsymbol{1} + 
+\frac{\sin(\phi)}{\phi} \boldsymbol{\Omega} \Delta t +  
+\frac{1 - \cos(\phi)}{\phi^2} \boldsymbol{\Omega}^2 \Delta t^2,
+\; \text{where} \;
+\phi = ||\boldsymbol{\omega}|| \Delta t\]
+
+<p>So, to summarize: if we know our orientation at time
+\(t\), and the time step is small enough that 
+\(\boldsymbol{\omega}\) is approximately constant over
+the time interval, then the new orientation is given by:</p>
+
+\[\boldsymbol{\Theta}(t + \Delta t) \coloneqq
+\bigg(
+\boldsymbol{1} + 
+\displaystyle \frac{\sin(\phi))}{\phi} \boldsymbol{\Omega} \Delta t +
+\frac{1 - \cos(\phi)}{\phi^2} \boldsymbol{\Omega}^2 \Delta t^2
+\bigg) \boldsymbol{\Theta}(t)\]
+
+<p>To verify, I recorded some data from Rocket League, where a car
+was tumbling with randomized inputs. This test predicts
+future car orientations, given the initial orientation of the car, 
+and the exact (recorded) time history of angular velocities. Each
+of the 9 predicted entries (dashed lines) of the orientation matrix 
+are plotted against their exact versions (solid lines) below:</p>
+
+<p><img src="orientation_history.png" alt="" /></p>
+
+<p>Here, we see that the predicted values provide a reasonable approximation of the orientation, with some error. Comparing predicted and exact
+orientations at the final time step in this example shows that the
+two are off by a rotation of 5.92345 degrees.</p>
+
+<p>From my experiments, it is noticeably more true-to-Rocket League to use the
+averaged angular velocity when evaluating the update procedure
+above:</p>
+
+\[\text{use} \; \boldsymbol{\omega} \coloneqq \frac{1}{2}
+\big( \boldsymbol{\omega}(t) + \boldsymbol{\omega}(t + \Delta t) \big)\]
+
+<p>But to get the \(\boldsymbol{\omega}(t + \Delta t)\) for this
+averaged angular velocity, we need to consider how 
+\(\boldsymbol{\omega}\) evolves with time.</p>
+
+<h2 id="time-rate-of-change-of-angular-velocity">Time Rate of Change of Angular Velocity</h2>
+
+<p>Now that we understand how to predict \(\boldsymbol{\Theta}(t + \Delta t)\), 
+given \(\boldsymbol{\omega}(t)\) and \(\boldsymbol{\Theta}(t)\), we need a
+way to compute \(\boldsymbol{\omega}(t + \Delta t)\). We start with the
+rotational analogue of Newton’s second law (for rotations about the
+center of mass of an object):</p>
+
+\[\frac{d(\boldsymbol{I}\boldsymbol{\omega})}{dt} = 
+\boldsymbol{\tau} - \boldsymbol{\omega} \times (\boldsymbol{I} \boldsymbol{\omega})\]
+
+<p>where \(\boldsymbol{I}\) is the car’s moment of inertia, and
+\(\boldsymbol{\tau}\) is the net torque applied on the car.
+In reality, the moment of inertia for an interesting shape
+like a car would be a 3x3 tensor with at least 3 unique
+entries. However, since there is no reason to believe that
+Rocket League is interested in realistic simulation, my first
+analysis is one where we consider the case where 
+\(\boldsymbol{I} = \mathbf{1}\) (i.e., the car has no
+direction in which it is harder or easier to rotate). In this
+case, the term \(\boldsymbol{\omega} \times (\boldsymbol{I} \boldsymbol{\omega})\)
+vanishes, and we are left with just</p>
+
+\[\frac{d(\boldsymbol{\omega})}{dt} = \boldsymbol{\tau}\]
+
+<p>At this point, it is a matter of understanding how Rocket League
+calculates \(\boldsymbol{\tau}\) in terms of the user’s input
+and the current orientation. Empirically, the following 
+expression gives good results:</p>
+
+\[\boldsymbol{\tau} = 
+\boldsymbol{\Theta} \; (
+\boldsymbol{T} \; \boldsymbol{u} + 
+\boldsymbol{D} \; \boldsymbol{\Theta}^\top \; \boldsymbol{\omega}),
+\; \text{where} \;
+\boldsymbol{u} = \begin{bmatrix}
+u_r \\ u_p \\ u_y
+\end{bmatrix} = \begin{bmatrix}
+\text{(input roll)} \\
+\text{(input pitch)} \\
+\text{(input yaw)}
+\end{bmatrix}\]
+
+<p>with</p>
+
+\[\boldsymbol{T} = \begin{bmatrix}
+T_r &amp; 0 &amp; 0 \\
+0 &amp; T_p &amp; 0 \\
+0 &amp; 0 &amp; T_y
+\end{bmatrix},
+\qquad
+\boldsymbol{D} = \begin{bmatrix}
+D_r &amp; 0 &amp; 0 \\
+0 &amp; D_p (1 - |u_p|) &amp; 0 \\
+0 &amp; 0 &amp; D_y (1 - |u_y|) 
+\end{bmatrix}\]
+
+<p>with numerical values for \(T_r, T_p, T_y, D_r, D_p, D_y\) given
+in the example implementation. Note: the matrix \(\boldsymbol{D}\)
+treats rotations in the “roll”-direction differently than the “pitch” and
+“yaw” directions. This means that when a user inputs a pitch or yaw
+of \(\pm 1\), the damping in those directions is turned off. However,
+the damping torque in the “roll” direction is always on.</p>
+
+<p>Finally, we can update \(\boldsymbol{\omega}\):</p>
+
+\[\boldsymbol{\omega}(t +\Delta t) = \boldsymbol{\omega}(t) + \boldsymbol{\tau} \Delta t\]
+
+<p>Applying this procedure to the same dataset as before, this time with exact values for
+\(\boldsymbol{\Theta}\) (which is needed to evaluate \(\boldsymbol{\tau}\)), 
+we get very good agreement between predicted angular velocities (dashed lines) 
+and exact values (solid lines). The red traces show the three components of 
+input roll, pitch, and yaw, with their transitions.</p>
+
+<p><img src="/images/RocketLeague/angular_velocity_history.png" alt="" /></p>
+
+<p>The fact that the plots are nearly identical here is evidence
+that our assumption about the moment of inertia is not unreasonable.
+Furthermore, I briefly investigated what effect a
+realistic moment of inertia would have and found that the
+moment of inertia values that produced the best predictions
+were those of an isotropic tensor (which was our original assumption).</p>
+
+<h2 id="final-notes">Final notes</h2>
+
+<p>For the example comparisons, we made predictions about 
+\(\boldsymbol{\Theta}\) using exact values for \(\boldsymbol{\omega}\), and
+used exact values of \(\boldsymbol{\Theta}\) to predict \(\boldsymbol{\omega}\). In
+a realistic scenario, we will not have those exact values, and we must use
+only the initial orientation and angular velocity. This means that we go back
+and forth, updating \(\boldsymbol{\Theta}\) in order to update 
+\(\boldsymbol{\omega}\), in order to update \(\boldsymbol{\Theta}\) again and so on. 
+This means that errors accumulate more rapidly, as shown below (using only exact
+initial conditions for \(\boldsymbol{\Theta}\), \(\boldsymbol{\omega}\)):</p>
+
+<p>Angular velocity:
+<img src="angular_velocity_history_both.png" alt="" /></p>
+
+<p>Orientation:
+<img src="orientation_history_both.png" alt="" /></p>
+
+<p>Of these two predictions, it seems to be the case that the
+orientation update is the main source of error. This may be
+related to Rocket League’s internal representation of 
+orientation as Euler angles quantized to 16-bit integers.</p>
+
+<p>With all of this information, we can try to figure out inputs that
+produce a desired car orientation for aerial hits,
+shots, and the recovery afterward.</p>
+
+<h2 id="example-implementation">Example Implementation</h2>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">const</span> <span class="kt">float</span> <span class="n">omega_max</span> <span class="o">=</span> <span class="mf">5.5</span><span class="p">;</span>
+<span class="k">const</span> <span class="kt">float</span> <span class="n">T_r</span> <span class="o">=</span> <span class="o">-</span><span class="mf">36.07956616966136</span><span class="p">;</span> <span class="c1">// torque coefficient for roll</span>
+<span class="k">const</span> <span class="kt">float</span> <span class="n">T_p</span> <span class="o">=</span> <span class="o">-</span><span class="mf">12.14599781908070</span><span class="p">;</span> <span class="c1">// torque coefficient for pitch</span>
+<span class="k">const</span> <span class="kt">float</span> <span class="n">T_y</span> <span class="o">=</span>   <span class="mf">8.91962804287785</span><span class="p">;</span> <span class="c1">// torque coefficient for yaw</span>
+<span class="k">const</span> <span class="kt">float</span> <span class="n">D_r</span> <span class="o">=</span>  <span class="o">-</span><span class="mf">4.47166302201591</span><span class="p">;</span> <span class="c1">// drag coefficient for roll</span>
+<span class="k">const</span> <span class="kt">float</span> <span class="n">D_p</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.798194258050845</span><span class="p">;</span> <span class="c1">// drag coefficient for pitch</span>
+<span class="k">const</span> <span class="kt">float</span> <span class="n">D_y</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.886491900437232</span><span class="p">;</span> <span class="c1">// drag coefficient for yaw</span>
+
+<span class="k">struct</span> <span class="nc">state</span> <span class="p">{</span>
+  <span class="n">vec3</span>   <span class="n">omega</span><span class="p">;</span> <span class="c1">// angular velocity</span>
+  <span class="n">mat3x3</span> <span class="n">theta</span><span class="p">;</span> <span class="c1">// orientation</span>
+<span class="p">};</span>
+
+<span class="n">state</span> <span class="nf">aerial_control</span><span class="p">(</span><span class="n">state</span> <span class="n">current</span><span class="p">,</span> <span class="kt">float</span> <span class="n">roll</span><span class="p">,</span> <span class="kt">float</span> <span class="n">pitch</span><span class="p">,</span> <span class="kt">float</span> <span class="n">yaw</span><span class="p">,</span> <span class="kt">float</span> <span class="n">dt</span><span class="p">)</span> <span class="p">{</span>
+   
+  <span class="n">mat3x3</span> <span class="n">T</span><span class="p">{</span>
+    <span class="p">{</span><span class="n">T_r</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">},</span>
+    <span class="p">{</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">T_p</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">},</span>
+    <span class="p">{</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">T_y</span><span class="p">}</span>
+  <span class="p">};</span> 
+
+  <span class="n">mat3x3</span> <span class="n">D</span><span class="p">{</span>
+    <span class="p">{</span><span class="n">D_r</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">},</span>
+    <span class="p">{</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">D_p</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">fabs</span><span class="p">(</span><span class="n">pitch</span><span class="p">)),</span> <span class="mf">0.0</span><span class="p">},</span>
+    <span class="p">{</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">D_y</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">fabs</span><span class="p">(</span><span class="n">yaw</span><span class="p">))}</span>
+  <span class="p">};</span>
+  
+  <span class="c1">// compute the net torque on the car</span>
+  <span class="n">vec3</span> <span class="n">tau</span> <span class="o">=</span> <span class="n">dot</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">dot</span><span class="p">(</span><span class="n">transpose</span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="n">theta</span><span class="p">),</span> <span class="n">current</span><span class="p">.</span><span class="n">omega</span><span class="p">));</span>
+  <span class="n">tau</span> <span class="o">+=</span> <span class="n">dot</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">vec3</span><span class="p">{</span><span class="n">roll</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">yaw</span><span class="p">}));</span>
+  <span class="n">tau</span> <span class="o">=</span> <span class="n">dot</span><span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">tau</span><span class="p">));</span>
+
+  <span class="c1">// use the torque to get the update angular velocity</span>
+  <span class="n">vec3</span> <span class="n">omega_next</span> <span class="o">=</span> <span class="n">current</span><span class="p">.</span><span class="n">omega</span> <span class="o">+</span> <span class="n">tau</span> <span class="o">*</span> <span class="n">dt</span><span class="p">;</span>  
+
+  <span class="c1">// prevent the angular velocity from exceeding a threshold</span>
+  <span class="n">omega_next</span> <span class="o">*=</span> <span class="n">fmin</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">omega_max</span> <span class="o">/</span> <span class="n">norm</span><span class="p">(</span><span class="n">omega</span><span class="p">));</span>
+
+  <span class="c1">// compute the average angular velocity for this step</span>
+  <span class="n">vec3</span> <span class="n">omega_avg</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">current</span><span class="p">.</span><span class="n">omega</span> <span class="o">+</span> <span class="n">omega_next</span><span class="p">);</span>
+  <span class="kt">float</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">omega_avg</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span><span class="p">;</span>
+
+  <span class="n">mat3x3</span> <span class="n">Omega_dt</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">{</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">omega_avg</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="n">omega_avg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">},</span>
+    <span class="p">{</span><span class="n">omega_avg</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="n">omega_avg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">},</span>
+    <span class="p">{</span><span class="o">-</span><span class="n">omega_avg</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="n">omega_avg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">}</span>
+  <span class="p">};</span>
+
+  <span class="n">mat3x3</span> <span class="n">R</span> <span class="o">=</span> <span class="n">mat3x3</span><span class="o">::</span><span class="n">eye</span><span class="p">();</span>
+  <span class="n">R</span> <span class="o">+=</span> <span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span> <span class="o">/</span> <span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">Omega_dt</span><span class="p">;</span>
+  <span class="n">R</span> <span class="o">+=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">phi</span><span class="o">*</span><span class="n">phi</span><span class="p">)</span> <span class="o">*</span> <span class="n">dot</span><span class="p">(</span><span class="n">Omega_dt</span><span class="p">,</span> <span class="n">Omega_dt</span><span class="p">);</span>
+
+  <span class="k">return</span> <span class="n">state</span><span class="p">{</span><span class="n">omega_next</span><span class="p">,</span> <span class="n">dot</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">current</span><span class="p">.</span><span class="n">theta</span><span class="p">)};</span>
+   
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>also, to convert from Euler angles (in radians) to an orientation matrix:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="n">mat3x3</span> <span class="nf">convert_from_Euler_angles</span><span class="p">(</span><span class="kt">float</span> <span class="n">roll</span><span class="p">,</span> <span class="kt">float</span> <span class="n">pitch</span><span class="p">,</span> <span class="kt">float</span> <span class="n">yaw</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="kt">float</span> <span class="n">CR</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+  <span class="kt">float</span> <span class="n">SR</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">roll</span><span class="p">);</span>
+  <span class="kt">float</span> <span class="n">CP</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">pitch</span><span class="p">);</span> 
+  <span class="kt">float</span> <span class="n">SP</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">pitch</span><span class="p">);</span>
+  <span class="kt">float</span> <span class="n">CY</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">yaw</span><span class="p">);</span>
+  <span class="kt">float</span> <span class="n">SY</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">yaw</span><span class="p">);</span>
+
+  <span class="n">mat3x3</span> <span class="n">theta</span><span class="p">;</span>
+
+  <span class="c1">// front direction</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="n">CP</span> <span class="o">*</span> <span class="n">CY</span><span class="p">;</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="n">CP</span> <span class="o">*</span> <span class="n">SY</span><span class="p">;</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="n">SP</span><span class="p">;</span> 
+
+  <span class="c1">// left direction</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">CY</span> <span class="o">*</span> <span class="n">SP</span> <span class="o">*</span> <span class="n">SR</span> <span class="o">-</span> <span class="n">CR</span> <span class="o">*</span> <span class="n">SY</span><span class="p">;</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">SY</span> <span class="o">*</span> <span class="n">SP</span> <span class="o">*</span> <span class="n">SR</span> <span class="o">+</span> <span class="n">CR</span> <span class="o">*</span> <span class="n">CY</span><span class="p">;</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="n">CP</span> <span class="o">*</span> <span class="n">SR</span><span class="p">;</span> 
+
+  <span class="c1">// up direction</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="n">CR</span> <span class="o">*</span> <span class="n">CY</span> <span class="o">*</span> <span class="n">SP</span> <span class="o">-</span> <span class="n">SR</span> <span class="o">*</span> <span class="n">SY</span><span class="p">;</span> 
+  <span class="n">theta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="n">CR</span> <span class="o">*</span> <span class="n">SY</span> <span class="o">*</span> <span class="n">SP</span> <span class="o">+</span> <span class="n">SR</span> <span class="o">*</span> <span class="n">CY</span><span class="p">;</span>
+  <span class="n">theta</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="n">CP</span> <span class="o">*</span> <span class="n">CR</span><span class="p">;</span> 
+
+  <span class="k">return</span> <span class="n">theta</span><span class="p">;</span> 
+
+<span class="p">}</span>
+</code></pre></div></div>
+
+:ET

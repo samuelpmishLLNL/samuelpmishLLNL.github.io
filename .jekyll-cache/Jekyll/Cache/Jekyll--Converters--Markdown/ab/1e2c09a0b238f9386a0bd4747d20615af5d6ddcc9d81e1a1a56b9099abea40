@@ -1,0 +1,56 @@
+I"%<video autoplay="" loop="" muted="" width="640">
+<source type="video/webm" src="/videos/aerial_recovery.webm" />
+Your browser does not support the video element.
+</video>
+
+<p>Although most RLBot developers have implemented robust controllers for
+steering on the ground, many bots still struggle to precisely control
+their cars in the air. In this post, I will describe, in detail, an aerial
+controller that can make a car quickly reorient itself to an arbitrary 
+direction.</p>
+
+<p>The two main applications for this are aerial recovery (detecting
+the surface a car will hit, and turning to land upright) and setting
+up aerial hits, as discussed in this post.</p>
+
+<p>If you aren’t interested in derivations or how it works, check out
+the example code and summary.</p>
+
+<h2 id="problem-statement">Problem Statement</h2>
+
+<p>Let \(\boldsymbol{\Theta}(t), \boldsymbol{\omega}(t)\) 
+denote the orientation matrix and angular velocity of our car,
+respectively, at time t. We will use \(\boldsymbol{\Phi}\) 
+to represent the target orientation we want to reach.</p>
+
+<p>Our goal is to find the angular accelerations \(\boldsymbol{a}(t)\)
+that bring the car’s orientation to the desired state, and keep it
+there. After that, it is a simple matter to find the actual 
+roll, pitch, and yaw control values that produce those 
+angular accelerations.</p>
+
+<h2 id="1d-example">1D Example</h2>
+
+<p>Imagine a scenario where a car has just hit an aerial, and is now
+falling toward the ground. We would like to turn the car so that it
+lands cleanly.</p>
+
+<p>IMAGE</p>
+
+<p>In order to reorient as fast as possible, we want to turn with
+the greatest acceleration we can. However, if we keep 
+accelerating at maximum until reaching the right angle, the car
+will spin right past the desired orientation:</p>
+
+<p>IMAGE</p>
+
+<p>Instead, by changing the angular acceleration at the right time,
+we can ensure that the car stops spinning at the same time it reaches
+the desired orientation:</p>
+
+<p>IMAGE</p>
+
+<p>The question is: how do we know when to make this change?</p>
+
+<h2 id="summary">Summary</h2>
+:ET
