@@ -1,11 +1,11 @@
 ---
 layout: page
 title: "Aerial Turn Controller"
+tags: wip
 ---
 
 <video autoplay loop muted width="640">
-<source type="video/webm" src="/aerial_recovery.webm">
-Your browser does not support the video element.
+<source type="video/webm" src="aerial_recovery.webm">
 </video>
 
 Although most RLBot developers have implemented robust controllers for

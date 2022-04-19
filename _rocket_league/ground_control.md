@@ -1,7 +1,7 @@
 ---
 layout: page
-title: "How the Car Handles (Ground)"
-tags: rocket_league
+title: "Car Simulation: Ground Control"
+image: turning_radius.gif
 ---
 
 ## Overview
@@ -26,8 +26,7 @@ Consider what happens when we steer all the way to the left
 and increase the car's throttle:
 
 <video autoplay loop muted width="640">
-<source type="video/webm" src="/turning_radius.webm">
-Your browser does not support the video element.
+<source type="video/webm" src="turning_radius.webm">
 </video>
 
 If we look closely, we can see that the front wheels change direction
@@ -40,18 +39,18 @@ To quantify this effect, the car's steering was set to maximum, and
 the curvature of its trajectory ($$\kappa \propto \frac{1}{r}$$) was 
 logged along with its velocity. The data points are shown below:
 
-![](//turning_curvature.png)
+![](turning_curvature.png)
 
 From this, we see that the curvature seems to vary in a piecewise linear
 way with respect to velocity. We can fit a function to this data (shown
 in red), and use it to predict rates of turning:
 
-![](//turning_curvature_with_fit.png)
+![](turning_curvature_with_fit.png)
 
 The Mathematica implementation of the red piecewise linear function above 
 is given below:
 
-![](//curvature.png)
+![](curvature.png)
 
 Where the first column of numbers are the velocities, the second column
 are the curvature values, and the function interpolates between any
@@ -85,12 +84,12 @@ the car experiences a constant acceleration, slowing it down at a rate of $$525 
 The acceleration due to throttle is velocity dependent. It is greatest when the car is at rest,
 and then decreases monotonically to zero when traveling at $$1410 \frac{uu}{s}$$. 
 
-![](//throttle_acceleration_plot.png)
+![](throttle_acceleration_plot.png)
 
 The numbers for this curve are given below, again with the first column being the velocities,
 and the second column the accelerations:
 
-![](//throttle_acceleration_function.png)
+![](throttle_acceleration_function.png)
 
 Note: if you want to maintain your current speed, it is better to use a small, positive throttle value (say, 0.02)
 as opposed to zero, since a throttle of 0.0 will make the car experience the relatively large coasting acceleration.

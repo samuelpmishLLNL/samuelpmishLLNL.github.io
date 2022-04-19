@@ -1,11 +1,11 @@
 ---
 layout: page
-title: "How to Hit an Aerial"
+title: "How to write a bot that hits aerials"
+image: aerial_hit.jpg
 ---
 
 <video autoplay loop muted width="800">
 <source type="video/webm" src="aerials.webm">
-Your browser does not support the video element.
 </video>
 
 One of the most useful and impressive maneuvers in Rocket League

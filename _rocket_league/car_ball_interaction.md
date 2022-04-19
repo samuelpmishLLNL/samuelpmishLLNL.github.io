@@ -1,21 +1,21 @@
 ---
 layout: page
-title: "How the Car and Ball Interact"
+title: "Ball Simulation: Bouncing Off Cars"
+image: hit_impulse.jpg
 ---
 
-This post aims to describe an accurate,
-quantitative description of the physics behind the collisions
-of Rocket League, so that players and bot developers might 
-better understand what happens when the car and ball make contact.
-It is my hope that this theory will allow bots to make
-more informed decisions about their shot selection,
-so we can finally say "Calculated." unironically!
+This post aims to describe an accurate model of
+the physics behind the collisions of Rocket League, 
+so that players and bot developers might 
+better understand precisely what happens when the 
+car and ball make contact.
 
 Although these notes are presented on this personal website,
-this work is a collaboration with Nevercast
-and tarehart (both members of the [RLBot community](https://www.rlbot.org)).
+this work was a collaboration with Nevercast and tarehart 
+(both members of the [RLBot community](https://www.rlbot.org)).
 Additionally, I also want to express my thanks to Bakkes for developing
-[tools](https://www.bakkesmod.com) that greatly simplified the data collection process for this analysis.
+[tools](https://www.bakkesmod.com) that greatly simplified the data
+collection process for this analysis.
 
 ## Hitboxes and Collision Detection
 
@@ -32,9 +32,8 @@ contacting the oriented bounding box by first finding the point on the OBB
 that is closest to the sphere's center, and then 
 check if the distance between those points is less than the radius.
 
-<video autoplay loop muted>
+<video autoplay loop muted width="100%">
 <source type="video/webm" src="obb_nearest_point.webm">
-Your browser does not support the video element.
 </video>
 
 For a general shape, it can be pretty challenging
@@ -255,7 +254,7 @@ n = normalize(n - 0.35f * dot(n, f) * f);
 
 and the scaling function $$s(\| \Delta \boldsymbol{v} \|)$$ is depicted below:
 
-![](//impulse_scale_function.png)
+![](impulse_scale_function.png)
 
 Oddly enough, this part of the collision violates Newton's 3rd Law of Motion, 
 since Psyonix applies this impulse to the ball

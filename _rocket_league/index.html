@@ -1,12 +1,17 @@
 ---
 layout: default
 permalink: /rocket_league/index.html
+tags: wip
 ---
 
 <div class="container">
 	<div class="row">
 		{% for post in site.rocket_league %}
-			{% include article-content.html %}
+      {% if post.tags contains 'wip' %}
+        <!-- do nothing -->
+      {% else %}
+			  {% include article-content.html %}
+      {% endif %}
 		{% endfor %}
 	</div>
 </div>
