@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "Ball Simulation: Bouncing Off Cars"
+title: "Ball Simulation 3: Bouncing Off Cars"
 image: hit_impulse.jpg
 description: If you want to know how to hit a ball at a specific target
              then you have to understand precisely how collisions between

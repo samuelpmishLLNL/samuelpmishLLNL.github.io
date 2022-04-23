@@ -8,20 +8,10 @@
 
   .article__image {
     width: 40%;
-    display: block;
-    background-position: center;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-color: #ffffff;
+    display: flex;
+    justify-content: center;
     &:hover {
-      opacity: 0.9;
-    }
-
-    &:after {
-      content: "";
-      display: table;
-      width: 100%;
-      padding-bottom: 70%;
+      opacity: 0.8;
     }
   }
 
@@ -104,7 +94,7 @@
     .article__content {
       width: 90%;
       padding: 20px;
-      margin: -10% 0 0 0;
+      margin: 2% 0 0 0;
     }
 
     .article-without-image {

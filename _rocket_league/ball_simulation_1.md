@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "Ball Simulation: Physics of Bouncing"
+title: "Ball Simulation 1: Physics of Bouncing"
 image: bounce_trajectory.jpg
 ---
 

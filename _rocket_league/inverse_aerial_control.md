@@ -1,7 +1,8 @@
 ---
 layout: page
-title: "How the Car Handles (Aerial, Inverse)"
-description: "test test"
+title: "Car Simulation: Aerial Control (Inverse)"
+description: "These notes describe how to infer a player's aerial 
+controls (roll, pitch, and yaw) directly from the car's trajectory"
 image: aerial_control_inverse.png
 ---
 

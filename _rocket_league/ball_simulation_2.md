@@ -1,20 +1,23 @@
 ---
 layout: page
-title: "Using Rocket League's Collision Meshes"
+title: "Ball Simulation 2: Rocket League's Collision Meshes"
+image: pitch_mesh.png
+description: This post describes how we can use meshes taken from Rocket League to detect collisions, allowing us to predict precisely where the ball will be for the next few seconds.
 ---
 
-In a [previous post](/notes/RocketLeague/ball_bouncing/), 
-I provided a physical model for how the ball behaves in Rocket League.
-This model accurately describes what happens when the ball hits an
+In a [previous post](/rocket_league/ball_bouncing/), 
+we looked at a physical model for how the ball behaves in Rocket League.
+This model accurately described what happens when the ball hits an
 obstacle with a given surface normal, but without a way to find
 these collisions (and their surface normals) it was not very useful.
 
 This post describes how we can use meshes taken from Rocket League
-to more accurately report collision information to our model.
+to detect collisions, and calculate the surface normal required by 
+our bouncing model from earlier.
 
 ## Mesh Files
 
-![](//pitch_mesh.png)
+![](pitch_mesh.png)
 
 The RLBot community has collision meshes for the map corners, goals, and 
 cylindrical ramps on the sides of the field. I've put these together
@@ -157,16 +160,16 @@ League (solid lines) to the predicted trajectories computed with
 this model of ball bounce physics, given only the initial conditions
 (dashed lines). These plots are generated from data file 
 "episode\_000121.csv" in the dataset provided 
-[here](/notes/RocketLeague/ball_bounce_data.zip).
+[here](ball_bounce_data.zip).
 
 Ball locations, as a function of time step:
-![](//bounce_roll_positions.png)
+![](bounce_roll_positions.png)
 
 Ball velocities, as a function of time step:
-![](//bounce_roll_velocities.png)
+![](bounce_roll_velocities.png)
 
 Ball angular velocities, as a function of time step:
-![](//bounce_roll_angular_velocities.png)
+![](bounce_roll_angular_velocities.png)
 
 Here, we see that by using actual geometry, we are able to
 resolve not only the simple bounces with the ground (timesteps 0 to 400),
