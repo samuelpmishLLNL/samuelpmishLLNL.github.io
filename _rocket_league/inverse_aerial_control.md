@@ -1,6 +1,8 @@
 ---
 layout: page
 title: "How the Car Handles (Aerial, Inverse)"
+description: "test test"
+image: aerial_control_inverse.png
 ---
 
 This is a continuation of a [previous post](/rocket_league/aerial_control/),

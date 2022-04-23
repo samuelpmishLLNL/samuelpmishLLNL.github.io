@@ -6,7 +6,8 @@ tags: wip
 
 <div class="container">
 	<div class="row">
-		{% for post in site.rocket_league %}
+    {% assign sorted_posts = site.rocket_league | sort: 'title' | reverse %}
+		{% for post in sorted_posts %}
       {% if post.tags contains 'wip' %}
         <!-- do nothing -->
       {% else %}

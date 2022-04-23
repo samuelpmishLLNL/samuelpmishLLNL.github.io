@@ -2,6 +2,9 @@
 layout: page
 title: "Ball Simulation: Bouncing Off Cars"
 image: hit_impulse.jpg
+description: If you want to know how to hit a ball at a specific target
+             then you have to understand precisely how collisions between
+             a car and the ball work.
 ---
 
 This post aims to describe an accurate model of
