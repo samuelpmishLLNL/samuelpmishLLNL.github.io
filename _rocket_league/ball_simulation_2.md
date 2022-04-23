@@ -5,7 +5,7 @@ image: pitch_mesh.png
 description: This post describes how we can use meshes taken from Rocket League to detect collisions, allowing us to predict precisely where the ball will be for the next few seconds.
 ---
 
-In a [previous post](/rocket_league/ball_bouncing/), 
+In a [previous post](/rocket_league/ball_simulation_1/), 
 we looked at a physical model for how the ball behaves in Rocket League.
 This model accurately described what happens when the ball hits an
 obstacle with a given surface normal, but without a way to find
