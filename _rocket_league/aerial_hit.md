@@ -1,7 +1,8 @@
 ---
 layout: page
-title: "How to write a bot that hits aerials"
+title: "Teach your bot how to aerial"
 image: aerial_hit.jpg
+description: For new Rocket League players, reliably hitting aerials is one of the more difficult mechanics to master, but for bots it's one of the simplest. These notes show how to control your bot to aerial to a specific location at a specific time.
 ---
 
 <video autoplay loop muted width="800">
