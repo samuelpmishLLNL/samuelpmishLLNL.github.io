@@ -19,7 +19,10 @@
     loader: {load: ['[tex]/mathtools']},                                         
     tex: {                                                                       
       inlineMath: [ ['$', '$'], ['\\(', '\\)'] ],                                
-      packages: {'[+]': ['mathtools']}                                           
+      packages: {'[+]': ['mathtools']},
+      macros: {
+        bold: ["{\\bf #1}", 1]
+      }
     },                                                                           
     svg: {                                                                       
       fontCache: 'global'                                                        

@@ -68,7 +68,7 @@ Here's some Mathematica code to calculate these mass and stiffness matrices, $\b
 
 ![mug_2D_mass_and_stiffness_calculation](../images/mug_2D_mass_and_stiffness_calculation.svg)
 
-A detailed derivation of these expressions for how to calculate $\bold{M}, \bold{K}$ will be given in a future set of notes.
+For brevity, I've omitted some steps on how to derive the code that is used to calculate $\bold{M}, \bold{K}$, but a more detailed explanations will be given in a future set of notes.
 
 
 
