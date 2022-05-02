@@ -6,7 +6,7 @@ description: For new Rocket League players, reliably hitting aerials is one of t
 ---
 
 <video autoplay loop muted width="800">
-<source type="video/webm" src="aerials.webm">
+<source type="video/webm" src="/videos/aerials.webm">
 </video>
 
 One of the most useful and impressive maneuvers in Rocket League

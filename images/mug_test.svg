@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="360pt" height="360pt" viewBox="0 0 2 2" version="1.1">
+<path fill="transparent" stroke="black" stroke-width="0.01" d="">
+     <animate attributeName="d" dur="1s" repeatCount="indefinite"
+              values="M 0.850337 0.102325 L 1.09882 0.119951;
+                      M 1.14003 0.0937095 L 1.38915 0.125092;
+                      M 0.850337 0.102325 L 1.09882 0.119951"/>
+</path>
+</svg>

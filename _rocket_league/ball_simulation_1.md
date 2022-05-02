@@ -20,20 +20,20 @@ contact with a rigid surface with unit normal vector $$\mathbf{n}$$.
 Let $$\mathbf{v}$$ be the velocity of the center of mass of the ball, 
 and $$\boldsymbol{\omega}$$ be the angular velocity of the ball.
 
-![](bounce_problem_statement.png)
+![](../images/bounce_problem_statement.png)
 
 When the ball comes into contact with the rigid surface,
 it feels an impulse $$\mathbf{J}$$ that redirects the ball
 away from the surface:
 
-![](bounce_impulse.png)
+![](../images/bounce_impulse.png)
 
 To make our calculations work for any surface orientation,
 we need to express the impulse in terms of its components
 parallel to the surface, $$\mathbf{J}_{\shortparallel}$$,
 and normal to it, $$\mathbf{J}_{\perp}$$
 
-![](bounce_impulse_components.png)
+![](../images/bounce_impulse_components.png)
 
 If we knew these components of $$\mathbf{J}$$, then we could update
 the ball's velocity and angular velocity:
@@ -80,7 +80,7 @@ the one being used in Rocket League. Consider the following animation
 (made from actual data recorded in Rocket League):
 
 <video autoplay loop muted>
-<source type="video/webm" src="bounce.webm">
+<source type="video/webm" src="/videos/bounce.webm">
 </video>
 
 The important observation here is that the ball is subjected to a 
@@ -169,13 +169,13 @@ this model of ball bounce physics, given only the initial conditions
 "episode\_000218.csv" in the dataset provided at the top of this page.
 
 Ball locations, as a function of time step:
-![](bounce_positions_218.png)
+![](../images/bounce_positions_218.png)
 
 Ball velocities, as a function of time step:
-![](bounce_velocities_218.png)
+![](../images/bounce_velocities_218.png)
 
 Ball angular velocities, as a function of time step:
-![](bounce_angular_velocities_218.png)
+![](../images/bounce_angular_velocities_218.png)
 
 Note: in real time, 600 steps is about 10 seconds. The following
 are numerical values for the state after 10 seconds of prediction (quantities

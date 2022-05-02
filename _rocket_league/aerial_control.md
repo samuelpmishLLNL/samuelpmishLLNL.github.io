@@ -59,7 +59,7 @@ $$
 \boldsymbol\Theta \; \boldsymbol\Theta^\top = \mathbf{1}
 $$
 
-![](car_axes.png)
+![](../images/car_axes.png)
 
 ### Time Rate of Change of Orientation
 
@@ -69,7 +69,7 @@ $$\boldsymbol\omega$$? It will rotate about $$\boldsymbol\omega$$'s axis
 (shown in purple), at $$||\boldsymbol\omega||$$ radians per second:
 
 <video autoplay loop muted>
-<source type="video/webm" src="spinning.webm">
+<source type="video/webm" src="/videos/spinning.webm">
 Your browser does not support the video element.
 </video>
 
@@ -171,7 +171,7 @@ and the exact (recorded) time history of angular velocities. Each
 of the 9 predicted entries (dashed lines) of the orientation matrix 
 are plotted against their exact versions (solid lines) below:
 
-![](orientation_history.png)
+![](../images/orientation_history.png)
 
 Here, we see that the predicted values provide a reasonable approximation of the orientation, with some error. Comparing predicted and exact
 orientations at the final time step in this example shows that the
@@ -270,7 +270,7 @@ we get very good agreement between predicted angular velocities (dashed lines)
 and exact values (solid lines). The red traces show the three components of 
 input roll, pitch, and yaw, with their transitions.
 
-![](//angular_velocity_history.png)
+![](../images/angular_velocity_history.png)
 
 The fact that the plots are nearly identical here is evidence
 that our assumption about the moment of inertia is not unreasonable.
@@ -292,10 +292,10 @@ This means that errors accumulate more rapidly, as shown below (using only exact
 initial conditions for $$\boldsymbol{\Theta}$$, $$\boldsymbol{\omega}$$):
 
 Angular velocity:
-![](angular_velocity_history_both.png)
+![](../images/angular_velocity_history_both.png)
 
 Orientation:
-![](orientation_history_both.png)
+![](../images/orientation_history_both.png)
 
 Of these two predictions, it seems to be the case that the
 orientation update is the main source of error. This may be

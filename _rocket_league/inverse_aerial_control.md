@@ -122,12 +122,12 @@ note that when it hits 5.5, the inputs do not coincide.
 However, it is the case that the exact inputs and the
 recovered would still have the same effect on the car.
 
-![](aerial_control_inverse.png)
+![](../images/aerial_control_inverse.png)
 
 An example where angular velocities do not clip shows
 almost exact agreement:
 
-![](aerial_control_inverse_roll.png)
+![](../images/aerial_control_inverse_roll.png)
 
 ## Possible Implementation
 

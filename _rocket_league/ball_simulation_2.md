@@ -17,7 +17,7 @@ our bouncing model from earlier.
 
 ## Mesh Files
 
-![](pitch_mesh.png)
+![](../images/pitch_mesh.png)
 
 The RLBot community has collision meshes for the map corners, goals, and 
 cylindrical ramps on the sides of the field. I've put these together
@@ -163,13 +163,13 @@ this model of ball bounce physics, given only the initial conditions
 [here](ball_bounce_data.zip).
 
 Ball locations, as a function of time step:
-![](bounce_roll_positions.png)
+![](../images/bounce_roll_positions.png)
 
 Ball velocities, as a function of time step:
-![](bounce_roll_velocities.png)
+![](../images/bounce_roll_velocities.png)
 
 Ball angular velocities, as a function of time step:
-![](bounce_roll_angular_velocities.png)
+![](../images/bounce_roll_angular_velocities.png)
 
 Here, we see that by using actual geometry, we are able to
 resolve not only the simple bounces with the ground (timesteps 0 to 400),

@@ -26,7 +26,7 @@ Rocket League doesn't use the actual car's geometry to determine when
 collisions take place, instead they use oriented bounding boxes (OBBs)
 for each preset type:
 
-![](octane_hitbox.png)
+![](../images/octane_hitbox.png)
 
 Although this geometry doesn't really match the car very well, it is convenient
 from a programming perspective because it is inexpensive to perform intersection
@@ -36,7 +36,7 @@ that is closest to the sphere's center, and then
 check if the distance between those points is less than the radius.
 
 <video autoplay loop muted width="100%">
-<source type="video/webm" src="obb_nearest_point.webm">
+<source type="video/webm" src="/videos/obb_nearest_point.webm">
 </video>
 
 For a general shape, it can be pretty challenging
@@ -220,7 +220,7 @@ $$
 
 $$\boldsymbol{n}$$ is the unit contact normal direction (depicted below), and $$\boldsymbol{J}_\perp, \boldsymbol{J}_\shortparallel$$ are the perpendicular and parallel parts of $$\boldsymbol{J}$$, respectively.
 
-![](collision_normal_1.png)
+![](../images/collision_normal_1.png)
 
 This constraint is enforced by taking the impulse that comes from the inelastic collision model above, and rescaling $$\boldsymbol{J}_\shortparallel$$ if it exceeds the maximum acceptable value: 
 
@@ -257,7 +257,7 @@ n = normalize(n - 0.35f * dot(n, f) * f);
 
 and the scaling function $$s(\| \Delta \boldsymbol{v} \|)$$ is depicted below:
 
-![](impulse_scale_function.png)
+![](../images/impulse_scale_function.png)
 
 Oddly enough, this part of the collision violates Newton's 3rd Law of Motion, 
 since Psyonix applies this impulse to the ball
@@ -271,7 +271,7 @@ the ball, jumps, and dodges forward to make contact (visualization
 of actual game data, not a simulation):
 
 <video autoplay loop muted>
-<source type="video/webm" src="dodge_hit.webm">
+<source type="video/webm" src="/videos/dodge_hit.webm">
 Your browser does not support the video element.
 </video>
 
@@ -285,18 +285,18 @@ along with the exact velocity change of
 the ball compared to the values predicted by the approach
 described in this article.
 
-![](collision_example_1.png)
-![](collision_example_2.png)
-![](collision_example_3.png)
-![](collision_example_4.png)
-![](collision_example_5.png)
-![](collision_example_6.png)
-![](collision_example_7.png)
-![](collision_example_8.png)
-![](collision_example_9.png)
-![](collision_example_10.png)
-![](collision_example_11.png)
-![](collision_example_12.png)
+![](../images/collision_example_1.png)
+![](../images/collision_example_2.png)
+![](../images/collision_example_3.png)
+![](../images/collision_example_4.png)
+![](../images/collision_example_5.png)
+![](../images/collision_example_6.png)
+![](../images/collision_example_7.png)
+![](../images/collision_example_8.png)
+![](../images/collision_example_9.png)
+![](../images/collision_example_10.png)
+![](../images/collision_example_11.png)
+![](../images/collision_example_12.png)
 
 To put these values in perspective, the weakest hit in this set traveled for about 2500
 units before hitting the ground again. The strongest hit was 40% faster, and

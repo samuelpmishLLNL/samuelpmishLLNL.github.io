@@ -1,0 +1,21 @@
+---
+layout: default
+permalink: /math/index.html
+tags: wip
+---
+
+<div class="container">
+	<div class="row">
+    {% assign sorted_posts = site.math %}
+    <!-- 
+    {% assign sorted_posts = site.math | sort: 'index' %}
+    -->
+		{% for post in sorted_posts %}
+      {% if post.tags contains 'wip' %}
+        <!-- do nothing -->
+      {% else %}
+			  {% include article-content.html %}
+      {% endif %}
+		{% endfor %}
+	</div>
+</div>

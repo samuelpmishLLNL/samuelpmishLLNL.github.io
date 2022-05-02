@@ -5,7 +5,7 @@ tags: wip
 ---
 
 <video autoplay loop muted width="640">
-<source type="video/webm" src="aerial_recovery.webm">
+<source type="video/webm" src="/videos/aerial_recovery.webm">
 </video>
 
 Although most RLBot developers have implemented robust controllers for

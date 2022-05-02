@@ -30,7 +30,7 @@ $$t$$ is not necessarily time, but just a number ranging
 from 0 to 1 (0 being the beginning of the curve, and 1 being the end).
 
 <video autoplay loop muted width="640">
-<source type="video/webm" src="curve_parametrization.webm">
+<source type="video/webm" src="/videos/curve_parametrization.webm">
 Your browser does not support the video element.
 </video>
 
@@ -39,7 +39,7 @@ to first figure out the length of any section of the curve. To get
 started, let's zoom in on an arbitrary section of this curve 
 corresponding to the parameter values $$(t - \frac{\Delta t}{2}, t + \frac{\Delta t}{2})$$. 
 
-![](arclength.png)
+![](../images/arclength.png)
 
 In blue, we have the actual curve segment, whose length we would like
 to know. In red, we use $$\boldsymbol{c}'(t)$$ to construct a line that locally approximates the 
@@ -102,7 +102,7 @@ The curvature, $$\kappa$$, at a point on a curve is related to the radius of the
 osculating circle at that point (shown below in red).
 
 <video autoplay loop muted width="640">
-<source type="video/webm" src="curvature.webm">
+<source type="video/webm" src="/videos/curvature.webm">
 </video>
 
 The relationship between curvature and radius is a reciprocal one: $$\kappa = \frac{1}{r}$$, 
@@ -124,7 +124,7 @@ can be used to approximate the expression above, but I recommend one of the two 
 constructions from [this paper](/assets/curvature_approximations.pdf), 
 with the relevant excerpt below (note, they use $$k$$ instead of $$\kappa$$ for curvature):
 
-![](curvature_approximation.png)
+![](../images/curvature_approximation.png)
 
 ### Approximating $$v(s)$$
 
@@ -133,7 +133,7 @@ can be travelling instantenously. In another post, we showed that
 the maximum curvature, $$\kappa_{max}(v)$$, is related to the speed of the car
 in the following way:
 
-![](turning_curvature_with_fit.png)
+![](../images/turning_curvature_with_fit.png)
 
 With this in mind, a reasonable first guess for the optimal 
 speed plan, $$v(s)$$, is one where we set the speed to the
@@ -147,7 +147,7 @@ applied to the example path from earlier
 (using actual the actual curvature data from Rocket League):
 
 <video autoplay loop muted width="684">
-<source type="video/webm" src="naive_speed_limit.webm">
+<source type="video/webm" src="/videos/naive_speed_limit.webm">
 Your browser does not support the video element.
 </video>
 
@@ -172,7 +172,7 @@ those are the optimal ways to change our speed the fastest.
 For a straightaway, the plot below shows the relationship between
 speed and distance traveled when boosting (yellow) and braking (blue):
 
-![](acceleration_curves.png)
+![](../images/acceleration_curves.png)
 
 We can use this information to improve our estimate of $$v(s)$$, 
 by asserting that the slopes of $$v(s)$$ must be bounded by the values
@@ -180,7 +180,7 @@ from these curves. This will guarantee that the updated estimate will
 respect the acceleration limits of the car. Below is a comparison of the
 original $$v(s)$$ in blue, and the slope-limited form (in yellow):
 
-![](v_s.png)
+![](../images/v_s.png)
 
 By reading this plot, we can see that the optimal time of traversal involves boosting for the
 first ~750 units, braking, and then accelerating again once the car is past the turn.
