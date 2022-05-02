@@ -14,10 +14,10 @@ paginate_path: "/page/:num"
 collections:
   rocket_league:
     output: true
-    permalink: /rocket_league/:title:output_ext
+    permalink: /rocket_league/:title
   math:
     output: true
-    permalink: /math/:title:output_ext
+    permalink: /math/:title
 
 
 # Pages Path
