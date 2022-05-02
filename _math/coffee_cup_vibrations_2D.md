@@ -1,8 +1,8 @@
 ---
 layout: page
-title: "FEA from Scratch: Coffee Mug Vibrations"
+title: "FEA: Coffee Mug Vibrations"
 image: mug_thumbnail.gif
-description: blah blah
+description: What sound does a coffee mug make when you tap it with a spoon? In this post, we write a small 2D finite element code in Mathematica to simulate a coffee cup vibrating.
 ---
 
 There is a great video on numberphile's youtube channel, where Tadashi Tokieda observes an interesting phenomenon: if you tap the rim of a coffee mug with a spoon, you get slightly different pitches, depending on where you tap. He gives a beautiful explanation on why this occurs, and how to understand it intuitively. If you haven't seen this video already, please go watch it!
@@ -118,3 +118,7 @@ As we can see, if we align the spoon with any of the cardinal directions (N, E, 
 Just for fun, here are the next few modes, in ascending order of natural frequency:![higher_energy_mug_modes](../images/higher_energy_mug_modes.gif)
 
 Each of these modes is also excited when tapping the mug in any of the {N, NE, E, SE, S, SW, W, NW} locations, except the amplitude associated with these modes is considerably smaller, so they are less prominent.
+
+---
+
+[click here](/notebooks/coffee_cup_vibrations_2D.nb) for the Mathematica notebook used to perform this analysis and render the animations
